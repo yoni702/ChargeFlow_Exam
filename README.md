@@ -24,7 +24,7 @@ Exam
 
 ### Chech the exercise
     
-    curl -X POST -d '{"customerName": "John Doe", "items": [{"id": "item1", "qty": 2}]}' https://2e4vkvlja9.execute-api.us-east-1.amazonaws.com/prod/order
+    curl -X POST -d '{"customerName": "John Doe", "items": [{"id": "item1", "qty": 2}]}' https://s1c48wo1df.execute-api.us-east-1.amazonaws.com/prod/order
 
 
 

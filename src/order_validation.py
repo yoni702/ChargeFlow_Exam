@@ -23,18 +23,16 @@ def lambda_handler(event, context):
             print(error_message)
             sqs.send_message(
                 QueueUrl=os.environ['DLQ_URL'],
-                MessageBody=json.dumps({'error': 'Invalid order', 'order': body})
+                MessageBody=json.dumps({'error': 'Invalid order', 'order': body}),
+                MessageGroupId="dlq-group"  # Required for DLQ FIFO queues
             )
             return {'statusCode': 400, 'body': json.dumps({'message': 'Invalid order'})}
         
         # Send to SQS
-        queue_url = os.environ.get('SQS_QUEUE_URL')
-        if not queue_url:
-            raise EnvironmentError("SQS_QUEUE_URL is not set")
-
         response = sqs.send_message(
-            QueueUrl=queue_url,
-            MessageBody=json.dumps(body)
+            QueueUrl=os.environ['SQS_QUEUE_URL'],
+            MessageBody=json.dumps(body),
+            MessageGroupId="order-processing-group"  # Required for FIFO queues
         )
         print(f"SQS response: {response}")
 
@@ -43,4 +41,4 @@ def lambda_handler(event, context):
     except Exception as e:
         print(f"Unhandled Exception: {e}")
         print("Traceback:", traceback.format_exc())
-        return {'statusCode': 500, 'body': json.dumps({'message': 'Internal server error HaHa3'})}
+        return {'statusCode': 500, 'body': json.dumps({'message': 'Internal server error HABACA!!'})}
