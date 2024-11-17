@@ -1,151 +1,101 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: Serverless event-driven order processing system.
+Description: Serverless Event-Driven Order Processing System
 
-### Déclaration des paramètres
 Parameters:
-  EventBusName:
+  Environment:
     Type: String
-    Default: OrderEventBus
-    Description: The name of the EventBridge event bus.
-  
-  DynamoDBTableName:
-    Type: String
-    Default: Orders
-    Description: The name of the DynamoDB table.
-
-  SQSQueueName:
-    Type: String
-    Default: OrderQueue
-    Description: The name of the SQS queue.
-
-  SNSTopicName:
-    Type: String
-    Default: "OrderNotifications"
-    Description: The name of the SNS topic for notifications.
-
-Globals:
-  Function:
-    Runtime: python3.9
-    Timeout: 10
-    MemorySize: 128
-    CodeUri: ./src
+    Description: Environment (e.g., dev, staging, prod)
 
 Resources:
-
-
-  OrderApi:
+  # API Gateway
+  OrderSubmissionApi:
     Type: AWS::Serverless::Api
     Properties:
-      StageName: prod
-      DefinitionBody:
-        swagger: "2.0"
-        info:
-          title: "Order Processing API"
-          description: "API to manage order processing"
-          version: "1.0"
-        paths:
-          /order:
-            post:
-              summary: "Submit an order"
-              description: "Submit a new order for validation"
-              operationId: submitOrder
-              parameters:
-                - name: body
-                  in: body
-                  required: true
-                  schema:
-                    type: object
-                    properties:
-                      customerName:
-                        type: string
-                      items:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            id:
-                              type: string
-                            qty:
-                              type: integer
-              responses:
-                "200":
-                  description: "Order submitted successfully"
-                  schema:
-                    type: object
-                    properties:
-                      message:
-                        type: string
-          /inventoryCheck:
-            post:
-              summary: "Check inventory"
-              description: "Check if the inventory is available for the ordered items"
-              operationId: checkInventory
-              parameters:
-                - name: body
-                  in: body
-                  required: true
-                  schema:
-                    type: object
-                    properties:
-                      orderId:
-                        type: string
-              responses:
-                "200":
-                  description: "Inventory check passed"
-          /completeOrder:
-            post:
-              summary: "Complete an order"
-              description: "Complete the order and mark it as finished"
-              operationId: completeOrder
-              parameters:
-                - name: body
-                  in: body
-                  required: true
-                  schema:
-                    type: object
-                    properties:
-                      orderId:
-                        type: string
-              responses:
-                "200":
-                  description: "Order completed successfully"
-          /notifyCustomer:
-            post:
-              summary: "Send notification to customer"
-              description: "Send a notification to the customer regarding order status"
-              operationId: notifyCustomer
-              parameters:
-                - name: body
-                  in: body
-                  required: true
-                  schema:
-                    type: object
-                    properties:
-                      orderId:
-                        type: string
-              responses:
-                "200":
-                  description: "Notification sent"
+      StageName: !Ref Environment
+      Description: Order Submission API
+      EndpointConfiguration: REGIONAL
+      Cors:
+        AllowMethods: "'POST'"
+        AllowHeaders: "'Content-Type'"
+        AllowOrigin: "'*'"
 
+  # Order Submission Lambda
+  OrderSubmissionFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/order_validation.lambda_handler
+      Runtime: python3.9
+      CodeUri: .
+      Environment:
+        Variables:
+          EVENT_BUS_NAME: !Ref OrderProcessingEventBus
+      Events:
+        SubmitOrder:
+          Type: Api
+          Properties:
+            Path: /order
+            Method: POST
+            RestApiId: !Ref OrderSubmissionApi
 
-  ### EventBridge to orchestrate les événements
-  EventBus:
+  # EventBridge Event Bus
+  OrderProcessingEventBus:
     Type: AWS::Events::EventBus
     Properties:
-      Name: !Ref EventBusName
+      Name: OrderProcessingEventBus
 
-  ### SNS Topic for notifications
-  SnsTopic:
-    Type: AWS::SNS::Topic
+  # SQS Queue for Valid Orders
+  OrderQueue:
+    Type: AWS::SQS::Queue
     Properties:
-      TopicName: !Ref SNSTopicName
+      QueueName: OrderQueue.fifo
+      FifoQueue: true
+      ContentBasedDeduplication: true
 
-  ### Table DynamoDB to save orders
-  OrdersTable:
+  # Dead-Letter Queue for Invalid Orders
+  DLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: DeadLetterQueue.fifo
+      FifoQueue: true
+      ContentBasedDeduplication: true
+
+  # Order Validation Lambda
+  OrderValidationFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/order_validation.lambda_handler
+      Runtime: python3.9
+      CodeUri: .
+      Policies:
+        - SQSReadPolicy:
+            QueueName: !Ref OrderQueue
+      Environment:
+        Variables:
+          SQS_QUEUE_URL: !GetAtt OrderQueue.QueueUrl
+          DLQ_URL: !GetAtt DLQ.QueueUrl
+
+  # Inventory Management Lambda
+  InventoryCheckFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/inventory_check.lambda_handler
+      Runtime: python3.9
+      CodeUri: .
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: OrderTable
+      Events:
+        OrderQueueTrigger:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt OrderQueue.Arn
+
+  # DynamoDB Table
+  OrderTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: !Ref DynamoDBTableName
+      TableName: Orders
       AttributeDefinitions:
         - AttributeName: orderId
           AttributeType: S
@@ -154,103 +104,41 @@ Resources:
           KeyType: HASH
       BillingMode: PAY_PER_REQUEST
 
-  ### Queue SQS for orders
-  OrderQueue:
-    Type: AWS::SQS::Queue
-    Properties:
-      QueueName: !Ref SQSQueueName
-
-
-
-# ----FUNCTIONS---
-  ###  Lambda to validate orders
-  OrderValidationFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      Handler: src/order_validation.lambda_handler
-      CodeUri: ./src
-      Runtime: python3.9
-      Timeout: 10
-      MemorySize: 128
-      Events:
-        OrderValidationEvent:
-          Type: EventBridgeRule
-          Properties:
-            EventBusName: !Ref EventBus
-            Pattern:
-              source:
-                - "order.submission"
-      Environment:
-        Variables:
-          SQS_QUEUE_URL: !GetAtt OrderQueue.QueueUrl
-
-  ### Lambda to verify the inventory
-  InventoryCheckFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      Handler: src/inventory_check.lambda_handler
-      MemorySize: 128
-      Events:
-        OrderQueueEvent:
-          Type: SQS
-          Properties:
-            Queue: !GetAtt OrderQueue.Arn
-      Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref DynamoDBTableName
-        - Statement:
-            Effect: Allow
-            Action: events:PutEvents
-            Resource: !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:event-bus/${EventBusName}
-
-  ### Lambda to finalise the order
+  # Order Completion Lambda
   OrderCompletionFunction:
     Type: AWS::Serverless::Function
     Properties:
       Handler: src/order_completion.lambda_handler
-      MemorySize: 128
-      Events:
-        OrderProcessedEvent:
-          Type: EventBridgeRule
-          Properties:
-            EventBusName: !Ref EventBus
-            Pattern:
-              source:
-                - "order.inventory"
-              detail-type:
-                - "InventoryChecked"
+      Runtime: python3.9
+      CodeUri: .
       Policies:
         - DynamoDBCrudPolicy:
-            TableName: !Ref DynamoDBTableName
-        - Statement:
-            Effect: Allow
-            Action: events:PutEvents
-            Resource: !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:event-bus/${EventBusName}
+            TableName: OrderTable
+      Environment:
+        Variables:
+          EVENT_BUS_NAME: !Ref OrderProcessingEventBus
 
-  ### Lambda for notifications
+  # Notification Lambda
   NotificationFunction:
     Type: AWS::Serverless::Function
     Properties:
       Handler: src/notification.lambda_handler
-      MemorySize: 128
-      Events:
-        OrderCompletedEvent:
-          Type: EventBridgeRule
-          Properties:
-            EventBusName: !Ref EventBus
-            Pattern:
-              source:
-                - "order.completion"
-      Environment:
-        Variables:
-          SNS_TOPIC_ARN: !Ref SnsTopic
+      Runtime: python3.9
+      CodeUri: .
       Policies:
         - SNSPublishMessagePolicy:
-            TopicName: !Ref SNSTopicName
+            Topics: !Ref NotificationTopic
+      Environment:
+        Variables:
+          NOTIFICATION_TOPIC: !Ref NotificationTopic
 
+  # SNS Topic for Notifications
+  NotificationTopic:
+    Type: AWS::SNS::Topic
 
-# ----OUTPUT---
 Outputs:
   ApiEndpoint:
-    Value: !Sub "https://${OrderApi}.execute-api.${AWS::Region}.amazonaws.com/prod"
-    Description: "API Gateway endpoint URL"
+    Description: API Gateway Endpoint
+    Value: !Sub "https://${OrderSubmissionApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/order"
+    Export:
+      Name: ApiEndpoint

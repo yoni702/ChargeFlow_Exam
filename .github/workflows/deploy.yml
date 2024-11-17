@@ -40,14 +40,7 @@ jobs:
         run: |
           source .venv/bin/activate
           sam deploy \
-            --stack-name order-processing-system \
-            --region $AWS_REGION \
-            --capabilities CAPABILITY_IAM \
-            --resolve-s3 \
-            --parameter-overrides \
-              EventBusName=${{ secrets.EVENT_BUS_NAME }} \
-              DynamoDBTableName=${{ secrets.DYNAMODB_TABLE_NAME }} \
-              SNSTopicName=${{ secrets.SNS_TOPIC_NAME }} \
-              SQSQueueName=${{ secrets.SQS_QUEUE_NAME }} \
-            --no-confirm-changeset
+          --no-confirm-changeset \
+          --stack-name order-processing-system \
+          --parameter-overrides Environment=prod
         shell: bash
