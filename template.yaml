@@ -2,13 +2,16 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: Serverless Event-Driven Order Processing System
 
+# ------PARAMS--------
 Parameters:
   Environment:
     Type: String
-    Description: Environment (e.g., dev, staging, prod)
+    Description: Environment (dev, staging, prod)
 
+
+# ------RESSOURCES--------
 Resources:
-  # API Gateway
+# --- API GATEWAY ---
   OrderSubmissionApi:
     Type: AWS::Serverless::Api
     Properties:
@@ -19,6 +22,52 @@ Resources:
         AllowMethods: "'POST'"
         AllowHeaders: "'Content-Type'"
         AllowOrigin: "'*'"
+
+# --- EVENT BRIDGE --- 
+  OrderProcessingEventBus:
+    Type: AWS::Events::EventBus
+    Properties:
+      Name: OrderProcessingEventBus
+  
+
+# ---SNS---
+  # SNS Topic for Notifications
+  NotificationTopic:
+    Type: AWS::SNS::Topic
+
+# ---SQS---
+
+  # SQS Queue for Valid Orders
+  OrderQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: OrderQueue.fifo
+      FifoQueue: true
+      ContentBasedDeduplication: true
+
+  # Dead-Letter Queue for Invalid Orders
+  DLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: DeadLetterQueue.fifo
+      FifoQueue: true
+      ContentBasedDeduplication: true
+
+# -----DB-----
+  # DynamoDB Table
+  OrderTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: Orders
+      AttributeDefinitions:
+        - AttributeName: orderId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: orderId
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+
+# ------LAMBDA FUNCTIONS--------
 
   # Order Submission Lambda
   OrderSubmissionFunction:
@@ -37,28 +86,6 @@ Resources:
             Path: /order
             Method: POST
             RestApiId: !Ref OrderSubmissionApi
-
-  # EventBridge Event Bus
-  OrderProcessingEventBus:
-    Type: AWS::Events::EventBus
-    Properties:
-      Name: OrderProcessingEventBus
-
-  # SQS Queue for Valid Orders
-  OrderQueue:
-    Type: AWS::SQS::Queue
-    Properties:
-      QueueName: OrderQueue.fifo
-      FifoQueue: true
-      ContentBasedDeduplication: true
-
-  # Dead-Letter Queue for Invalid Orders
-  DLQ:
-    Type: AWS::SQS::Queue
-    Properties:
-      QueueName: DeadLetterQueue.fifo
-      FifoQueue: true
-      ContentBasedDeduplication: true
 
   # Order Validation Lambda
   OrderValidationFunction:
@@ -91,19 +118,6 @@ Resources:
           Properties:
             Queue: !GetAtt OrderQueue.Arn
 
-  # DynamoDB Table
-  OrderTable:
-    Type: AWS::DynamoDB::Table
-    Properties:
-      TableName: Orders
-      AttributeDefinitions:
-        - AttributeName: orderId
-          AttributeType: S
-      KeySchema:
-        - AttributeName: orderId
-          KeyType: HASH
-      BillingMode: PAY_PER_REQUEST
-
   # Order Completion Lambda
   OrderCompletionFunction:
     Type: AWS::Serverless::Function
@@ -132,10 +146,13 @@ Resources:
         Variables:
           NOTIFICATION_TOPIC: !Ref NotificationTopic
 
-  # SNS Topic for Notifications
-  NotificationTopic:
-    Type: AWS::SNS::Topic
 
+
+
+
+
+
+# ---OUTPUTS---
 Outputs:
   ApiEndpoint:
     Description: API Gateway Endpoint
