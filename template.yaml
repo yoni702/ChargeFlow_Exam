@@ -30,11 +30,6 @@ Globals:
     Timeout: 10
     MemorySize: 128
     CodeUri: ./src
-    Environment:
-      Variables:
-        EVENT_BUS_NAME: !Ref EventBusName
-        DYNAMODB_TABLE: !Ref DynamoDBTableName
-
 
 Resources:
 
@@ -134,19 +129,19 @@ Resources:
                   description: "Notification sent"
 
 
-  ### EventBridge pour orchestrer les événements
+  ### EventBridge to orchestrate les événements
   EventBus:
     Type: AWS::Events::EventBus
     Properties:
       Name: !Ref EventBusName
 
-  ### SNS Topic pour les notifications
+  ### SNS Topic for notifications
   SnsTopic:
     Type: AWS::SNS::Topic
     Properties:
       TopicName: !Ref SNSTopicName
 
-  ### Table DynamoDB pour stocker les commandes
+  ### Table DynamoDB to save orders
   OrdersTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -159,7 +154,7 @@ Resources:
           KeyType: HASH
       BillingMode: PAY_PER_REQUEST
 
-  ### File d'attente SQS pour les commandes
+  ### Queue SQS for orders
   OrderQueue:
     Type: AWS::SQS::Queue
     Properties:
@@ -168,7 +163,7 @@ Resources:
 
 
 # ----FUNCTIONS---
-  ### Fonction Lambda pour valider les commandes
+  ###  Lambda to validate orders
   OrderValidationFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -189,7 +184,7 @@ Resources:
         Variables:
           SQS_QUEUE_URL: !GetAtt OrderQueue.QueueUrl
 
-  ### Fonction Lambda pour vérifier l'inventaire
+  ### Lambda to verify the inventory
   InventoryCheckFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -208,7 +203,7 @@ Resources:
             Action: events:PutEvents
             Resource: !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:event-bus/${EventBusName}
 
-  ### Fonction Lambda pour finaliser la commande
+  ### Lambda to finalise the order
   OrderCompletionFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -232,7 +227,7 @@ Resources:
             Action: events:PutEvents
             Resource: !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:event-bus/${EventBusName}
 
-  ### Fonction Lambda pour les notifications
+  ### Lambda for notifications
   NotificationFunction:
     Type: AWS::Serverless::Function
     Properties:
