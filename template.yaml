@@ -140,16 +140,14 @@ Resources:
       Runtime: python3.9
       CodeUri: .
       Policies:
-        - SNSPublishMessagePolicy:
-            Topics: !Ref NotificationTopic
+        - Statement:
+            Effect: Allow
+            Action:
+              - "sns:Publish"
+            Resource: !Ref NotificationTopic
       Environment:
         Variables:
           NOTIFICATION_TOPIC: !Ref NotificationTopic
-
-
-
-
-
 
 
 # ---OUTPUTS---
