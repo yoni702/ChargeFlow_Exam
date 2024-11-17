@@ -49,4 +49,5 @@ jobs:
               DynamoDBTableName=${{ secrets.DYNAMODB_TABLE_NAME }} \
               SNSTopicName=${{ secrets.SNS_TOPIC_NAME }} \
               SQSQueueName=${{ secrets.SQS_QUEUE_NAME }} \
+            --no-confirm-changeset
         shell: bash
