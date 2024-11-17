@@ -37,6 +37,103 @@ Globals:
 
 
 Resources:
+
+
+  OrderApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: prod
+      DefinitionBody:
+        swagger: "2.0"
+        info:
+          title: "Order Processing API"
+          description: "API to manage order processing"
+          version: "1.0"
+        paths:
+          /order:
+            post:
+              summary: "Submit an order"
+              description: "Submit a new order for validation"
+              operationId: submitOrder
+              parameters:
+                - name: body
+                  in: body
+                  required: true
+                  schema:
+                    type: object
+                    properties:
+                      customerName:
+                        type: string
+                      items:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                            qty:
+                              type: integer
+              responses:
+                "200":
+                  description: "Order submitted successfully"
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+          /inventoryCheck:
+            post:
+              summary: "Check inventory"
+              description: "Check if the inventory is available for the ordered items"
+              operationId: checkInventory
+              parameters:
+                - name: body
+                  in: body
+                  required: true
+                  schema:
+                    type: object
+                    properties:
+                      orderId:
+                        type: string
+              responses:
+                "200":
+                  description: "Inventory check passed"
+          /completeOrder:
+            post:
+              summary: "Complete an order"
+              description: "Complete the order and mark it as finished"
+              operationId: completeOrder
+              parameters:
+                - name: body
+                  in: body
+                  required: true
+                  schema:
+                    type: object
+                    properties:
+                      orderId:
+                        type: string
+              responses:
+                "200":
+                  description: "Order completed successfully"
+          /notifyCustomer:
+            post:
+              summary: "Send notification to customer"
+              description: "Send a notification to the customer regarding order status"
+              operationId: notifyCustomer
+              parameters:
+                - name: body
+                  in: body
+                  required: true
+                  schema:
+                    type: object
+                    properties:
+                      orderId:
+                        type: string
+              responses:
+                "200":
+                  description: "Notification sent"
+
+
   ### EventBridge pour orchestrer les événements
   EventBus:
     Type: AWS::Events::EventBus
@@ -152,3 +249,10 @@ Resources:
       Policies:
         - SNSPublishMessagePolicy:
             TopicName: !Ref SNSTopicName
+
+
+
+Outputs:
+  ApiEndpoint:
+    Value: !Sub "https://${OrderApi}.execute-api.${AWS::Region}.amazonaws.com/prod"
+    Description: "API Gateway endpoint URL"

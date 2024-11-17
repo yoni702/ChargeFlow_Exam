@@ -19,3 +19,8 @@ Exam
         - DYNAMODB_TABLE_NAME
         - SQS_QUEUE_NAME
         - SNS_TOPIC_NAME
+
+
+### Chech the exercise
+    
+    curl -X POST -d '{"customerName": "John Doe", "items": [{"id": "item1", "qty": 2}]}' https://your-api-endpoint/order
