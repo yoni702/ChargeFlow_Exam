@@ -21,7 +21,7 @@ def lambda_handler(event, context):
         )
         return {'statusCode': 200, 'body': json.dumps({'message': 'Order received'})}
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Error occurred: {e}")
         print("Traceback:", traceback.format_exc())
 
-        return {'statusCode': 500, 'body': json.dumps({'message': 'Internal server AhAH error'})}
+        return {'statusCode': 500, 'body': json.dumps({'message': 'Internal server AhAh2 error'})}
