@@ -1,31 +1,45 @@
-name: Deploy to AWS
-on:
-  push:
-    branches:
-      - main
+name: Deploy SAM Application
+on: [push]
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
-      - name: Setup AWS CLI
-        uses: aws-actions/configure-aws-credentials@v2
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
+          python-version: '3.9'
+
+      - name: Install AWS SAM CLI
+        run: |
+          pip install aws-sam-cli
+
+      - name: Create virtual environment and install dependencies
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          pip install -r requirements.txt
+
+      - name: Build SAM application
+        run: |
+          sam build
 
       - name: Deploy SAM Stack
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: us-east-1
         run: |
-            sam deploy \
+          sam deploy \
             --stack-name order-processing-system \
-            --region us-east-1 \
+            --region $AWS_REGION \
             --capabilities CAPABILITY_IAM \
             --parameter-overrides \
-            EventBusName=${{ secrets.EVENT_BUS_NAME }} \
-            DynamoDBTableName=${{ secrets.DYNAMODB_TABLE_NAME }} \
-            SQSQueueName=${{ secrets.SQS_QUEUE_NAME }} \
-            SNSTopicName=${{ secrets.SNS_TOPIC_NAME }}
+              EventBusName=${{ secrets.EVENT_BUS_NAME }} \
+              DynamoDBTableName=${{ secrets.DYNAMODB_TABLE_NAME }} \
+              SQSQueueName=${{ secrets.SQS_QUEUE_NAME }} \
+              SNSTopicName=${{ secrets.SNS_TOPIC_NAME }}

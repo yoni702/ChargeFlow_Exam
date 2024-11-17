@@ -29,6 +29,7 @@ Globals:
     Runtime: python3.9
     Timeout: 10
     MemorySize: 128
+    CodeUri: ./src
     Environment:
       Variables:
         EVENT_BUS_NAME: !Ref EventBusName
@@ -64,7 +65,11 @@ Resources:
   OrderValidationFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: order_validation.lambda_handler
+      Handler: src/order_validation.lambda_handler
+      CodeUri: ./src
+      Runtime: python3.9
+      Timeout: 10
+      MemorySize: 128
       Events:
         OrderValidationEvent:
           Type: EventBridgeRule
@@ -81,7 +86,8 @@ Resources:
   InventoryCheckFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: inventory_check.lambda_handler
+      Handler: src/inventory_check.lambda_handler
+      MemorySize: 128
       Events:
         OrderQueueEvent:
           Type: SQS
@@ -99,7 +105,8 @@ Resources:
   OrderCompletionFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: order_completion.lambda_handler
+      Handler: src/order_completion.lambda_handler
+      MemorySize: 128
       Events:
         OrderProcessedEvent:
           Type: EventBridgeRule
@@ -122,7 +129,8 @@ Resources:
   NotificationFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: notification.lambda_handler
+      Handler: src/notification.lambda_handler
+      MemorySize: 128
       Events:
         OrderCompletedEvent:
           Type: EventBridgeRule
