@@ -20,12 +20,14 @@ jobs:
 
       - name: Create virtual environment and install dependencies
         run: |
-          python -m venv venv
+          python -m venv .venv -p python3
           source venv/bin/activate
+          pip install --upgrade pip
           pip install -r requirements.txt
 
       - name: Build SAM application
         run: |
+          source venv/bin/activate
           sam build
 
       - name: Deploy SAM Stack
@@ -34,6 +36,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: us-east-1
         run: |
+          source .venv/bin/activate
           sam deploy \
             --stack-name order-processing-system \
             --region $AWS_REGION \
