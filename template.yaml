@@ -78,14 +78,16 @@ Resources:
       CodeUri: .
       Environment:
         Variables:
-          EVENT_BUS_NAME: !Ref OrderProcessingEventBus
-      Events:
-        SubmitOrder:
-          Type: Api
-          Properties:
-            Path: /order
-            Method: POST
-            RestApiId: !Ref OrderSubmissionApi
+          SQS_QUEUE_URL: !Ref OrderQueue
+          DLQ_URL: !Ref DLQ
+      Policies:
+        - Statement:
+            Effect: Allow
+            Action:
+              - "sqs:SendMessage"
+            Resource:
+              - !GetAtt OrderQueue.Arn
+              - !GetAtt DLQ.Arn
 
   # Order Validation Lambda
   OrderValidationFunction:

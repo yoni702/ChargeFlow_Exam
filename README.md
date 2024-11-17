@@ -36,3 +36,10 @@ Exam
         {"item_id": "item2", "quantity": 1}
     ]
     }
+
+
+Technical Debt
+
+Multi Repository 
+- Step 1 Separate Lambda from Iac 
+- Ci Cd For each Lambda 
