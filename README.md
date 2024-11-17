@@ -22,13 +22,22 @@ Exam
         - SNS_TOPIC_NAME
 
 
-### Chech the exercise
+### Check the exercise
     
-    curl -X POST -d '{"customerName": "John Doe", "items": [{"id": "item1", "qty": 2}]}' https://s1c48wo1df.execute-api.us-east-1.amazonaws.com/prod/order
+curl -X POST https://s1c48wo1df.execute-api.us-east-1.amazonaws.com/prod/order \
+-H "Content-Type: application/json" \
+-d '{
+    "customer_name": "John Doe",
+    "items": [
+        {"item_id": "item1", "quantity": 2},
+        {"item_id": "item2", "quantity": 1}
+    ]
+    }'
 
 
+### Check the exercise From Postman
+https://s1c48wo1df.execute-api.us-east-1.amazonaws.com/prod/order
 
-### Chech the exercise From Postman
     {
     "customer_name": "John Doe",
     "items": [
@@ -38,8 +47,9 @@ Exam
     }
 
 
-Technical Debt
+## Technical Debt
 
 Multi Repository 
 - Step 1 Separate Lambda from Iac 
-- Ci Cd For each Lambda 
+- Ci Cd For IaC only  
+- Ci Cd For Lambdas 
