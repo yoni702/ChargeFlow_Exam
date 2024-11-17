@@ -43,6 +43,12 @@ Resources:
     Properties:
       Name: !Ref EventBusName
 
+  ### SNS Topic pour les notifications
+  SnsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Ref SNSTopicName
+
   ### Table DynamoDB pour stocker les commandes
   OrdersTable:
     Type: AWS::DynamoDB::Table
@@ -146,9 +152,3 @@ Resources:
       Policies:
         - SNSPublishMessagePolicy:
             TopicName: !Ref SnsTopicName
-
-  ### SNS Topic pour les notifications
-  SnsTopic:
-    Type: AWS::SNS::Topic
-    Properties:
-      TopicName: !Ref SNSTopicName
