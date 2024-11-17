@@ -170,8 +170,6 @@ Resources:
                 Action: sns:Publish
                 Resource: !Ref NotificationTopic
 
-
-
 # ---OUTPUTS---
 Outputs:
   ApiEndpoint:
