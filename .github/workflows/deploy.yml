@@ -20,15 +20,17 @@ jobs:
 
       - name: Create virtual environment and install dependencies
         run: |
-          python -m venv .venv -p python3
-          source venv/bin/activate
+          python -m venv .venv
+          source .venv/bin/activate
           pip install --upgrade pip
           pip install -r requirements.txt
+        shell: bash
 
       - name: Build SAM application
         run: |
-          source venv/bin/activate
+          source .venv/bin/activate
           sam build
+        shell: bash
 
       - name: Deploy SAM Stack
         env:
@@ -46,3 +48,4 @@ jobs:
               DynamoDBTableName=${{ secrets.DYNAMODB_TABLE_NAME }} \
               SQSQueueName=${{ secrets.SQS_QUEUE_NAME }} \
               SNSTopicName=${{ secrets.SNS_TOPIC_NAME }}
+        shell: bash
