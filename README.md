@@ -1,6 +1,7 @@
 # ChargeFlow_Exam
 Exam
 
+![[Exam.png]]
 ---
 ## Local Development
 
@@ -23,4 +24,4 @@ Exam
 
 ### Chech the exercise
     
-    curl -X POST -d '{"customerName": "John Doe", "items": [{"id": "item1", "qty": 2}]}' https://your-api-endpoint/order
+    curl -X POST -d '{"customerName": "John Doe", "items": [{"id": "item1", "qty": 2}]}' Api/Gateway

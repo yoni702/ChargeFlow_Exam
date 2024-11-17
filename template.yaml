@@ -165,6 +165,9 @@ Resources:
     Properties:
       QueueName: !Ref SQSQueueName
 
+
+
+# ----FUNCTIONS---
   ### Fonction Lambda pour valider les commandes
   OrderValidationFunction:
     Type: AWS::Serverless::Function
@@ -251,7 +254,7 @@ Resources:
             TopicName: !Ref SNSTopicName
 
 
-
+# ----OUTPUT---
 Outputs:
   ApiEndpoint:
     Value: !Sub "https://${OrderApi}.execute-api.${AWS::Region}.amazonaws.com/prod"
