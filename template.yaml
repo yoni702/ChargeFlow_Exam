@@ -95,12 +95,17 @@ Resources:
       Runtime: python3.9
       CodeUri: .
       Policies:
-        - SQSReadPolicy:
-            QueueName: !Ref OrderQueue
+        - Statement:
+            Effect: Allow
+            Action:
+              - "sqs:SendMessage"
+            Resource: 
+              - !GetAtt OrderQueue.Arn
+              - !GetAtt DLQ.Arn
       Environment:
         Variables:
-          SQS_QUEUE_URL: !GetAtt OrderQueue.QueueUrl
-          DLQ_URL: !GetAtt DLQ.QueueUrl
+          SQS_QUEUE_URL: !Ref OrderQueue
+          DLQ_URL: !Ref DLQ
 
   # Inventory Management Lambda
   InventoryCheckFunction:
@@ -139,15 +144,30 @@ Resources:
       Handler: src/notification.lambda_handler
       Runtime: python3.9
       CodeUri: .
-      Policies:
-        - Statement:
-            Effect: Allow
-            Action:
-              - "sns:Publish"
-            Resource: !Ref NotificationTopic
+      Role: !GetAtt NotificationFunctionRole.Arn
       Environment:
         Variables:
           NOTIFICATION_TOPIC: !Ref NotificationTopic
+
+  NotificationFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: NotificationFunctionPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: sns:Publish
+                Resource: !Ref NotificationTopic
+
 
 
 # ---OUTPUTS---
