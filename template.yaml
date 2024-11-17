@@ -1,0 +1,145 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Serverless event-driven order processing system.
+
+### Déclaration des paramètres
+Parameters:
+  EventBusName:
+    Type: String
+    Default: OrderEventBus
+    Description: The name of the EventBridge event bus.
+  
+  DynamoDBTableName:
+    Type: String
+    Default: Orders
+    Description: The name of the DynamoDB table.
+
+  SQSQueueName:
+    Type: String
+    Default: OrderQueue
+    Description: The name of the SQS queue.
+
+  SNSTopicName:
+    Type: String
+    Default: OrderNotifications
+    Description: The name of the SNS topic for notifications.
+
+Globals:
+  Function:
+    Runtime: python3.9
+    Timeout: 10
+    MemorySize: 128
+    Environment:
+      Variables:
+        EVENT_BUS_NAME: !Ref EventBusName
+        DYNAMODB_TABLE: !Ref DynamoDBTableName
+
+Resources:
+  ### EventBridge pour orchestrer les événements
+  EventBus:
+    Type: AWS::Events::EventBus
+    Properties:
+      Name: !Ref EventBusName
+
+  ### Table DynamoDB pour stocker les commandes
+  OrdersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Ref DynamoDBTableName
+      AttributeDefinitions:
+        - AttributeName: orderId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: orderId
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+
+  ### File d'attente SQS pour les commandes
+  OrderQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Ref SQSQueueName
+
+  ### Fonction Lambda pour valider les commandes
+  OrderValidationFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: order_validation.lambda_handler
+      Events:
+        OrderValidationEvent:
+          Type: EventBridgeRule
+          Properties:
+            EventBusName: !Ref EventBus
+            Pattern:
+              source:
+                - "order.submission"
+      Environment:
+        Variables:
+          SQS_QUEUE_URL: !GetAtt OrderQueue.QueueUrl
+
+  ### Fonction Lambda pour vérifier l'inventaire
+  InventoryCheckFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: inventory_check.lambda_handler
+      Events:
+        OrderQueueEvent:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt OrderQueue.Arn
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref DynamoDBTableName
+        - Statement:
+            Effect: Allow
+            Action: events:PutEvents
+            Resource: !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:event-bus/${EventBusName}
+
+  ### Fonction Lambda pour finaliser la commande
+  OrderCompletionFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: order_completion.lambda_handler
+      Events:
+        OrderProcessedEvent:
+          Type: EventBridgeRule
+          Properties:
+            EventBusName: !Ref EventBus
+            Pattern:
+              source:
+                - "order.inventory"
+              detail-type:
+                - "InventoryChecked"
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref DynamoDBTableName
+        - Statement:
+            Effect: Allow
+            Action: events:PutEvents
+            Resource: !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:event-bus/${EventBusName}
+
+  ### Fonction Lambda pour les notifications
+  NotificationFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: notification.lambda_handler
+      Events:
+        OrderCompletedEvent:
+          Type: EventBridgeRule
+          Properties:
+            EventBusName: !Ref EventBus
+            Pattern:
+              source:
+                - "order.completion"
+      Environment:
+        Variables:
+          SNS_TOPIC_ARN: !Ref SnsTopic
+      Policies:
+        - SNSPublishMessagePolicy:
+            TopicName: !Ref SnsTopicName
+
+  ### SNS Topic pour les notifications
+  SnsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Ref SNSTopicName
