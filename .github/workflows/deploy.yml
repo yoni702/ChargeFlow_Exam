@@ -43,6 +43,7 @@ jobs:
             --stack-name order-processing-system \
             --region $AWS_REGION \
             --capabilities CAPABILITY_IAM \
+            --s3-bucket your-bucket-name \
             --parameter-overrides \
               EventBusName=${{ secrets.EVENT_BUS_NAME }} \
               DynamoDBTableName=${{ secrets.DYNAMODB_TABLE_NAME }} \
