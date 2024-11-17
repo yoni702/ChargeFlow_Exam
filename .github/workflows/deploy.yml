@@ -47,6 +47,6 @@ jobs:
             --parameter-overrides \
               EventBusName=${{ secrets.EVENT_BUS_NAME }} \
               DynamoDBTableName=${{ secrets.DYNAMODB_TABLE_NAME }} \
-              SQSQueueName=${{ secrets.SQS_QUEUE_NAME }} \
               SNSTopicName=${{ secrets.SNS_TOPIC_NAME }}
+              SQSQueueName=${{ secrets.SQS_QUEUE_NAME }} \
         shell: bash
