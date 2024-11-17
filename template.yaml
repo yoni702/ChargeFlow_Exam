@@ -76,6 +76,13 @@ Resources:
       Handler: src/order_validation.lambda_handler
       Runtime: python3.9
       CodeUri: .
+      Events:
+        SubmitOrder:
+          Type: Api
+          Properties:
+            Path: /order
+            Method: POST
+            RestApiId: !Ref OrderSubmissionApi
       Environment:
         Variables:
           SQS_QUEUE_URL: !GetAtt OrderQueue.QueueUrl
