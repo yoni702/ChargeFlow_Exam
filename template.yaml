@@ -78,8 +78,8 @@ Resources:
       CodeUri: .
       Environment:
         Variables:
-          SQS_QUEUE_URL: !Ref OrderQueue
-          DLQ_URL: !Ref DLQ
+          SQS_QUEUE_URL: !GetAtt OrderQueue.QueueUrl
+          DLQ_URL: !GetAtt DLQ.QueueUrl
       Policies:
         - Statement:
             Effect: Allow
