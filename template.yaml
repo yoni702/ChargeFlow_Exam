@@ -151,4 +151,4 @@ Resources:
           SNS_TOPIC_ARN: !Ref SnsTopic
       Policies:
         - SNSPublishMessagePolicy:
-            TopicName: !Ref SnsTopicName
+            TopicName: !Ref SNSTopicName
