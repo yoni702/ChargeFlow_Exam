@@ -42,5 +42,8 @@ jobs:
           sam deploy \
           --no-confirm-changeset \
           --stack-name order-processing-system \
+          --region $AWS_REGION \
+          --capabilities CAPABILITY_IAM \
+          --resolve-s3 \
           --parameter-overrides Environment=prod
         shell: bash
